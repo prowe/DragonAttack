@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Dragon Attack!</title>
+    <style>
+
+    </style>
+</head>
+
+<body>
+    <main>
+        <section id="dragon-status">
+            <h3>Dragon:</h3>
+            <img src="" />
+            <div>{{target.health}} / {{target.maxHealth}}</div>
+        </section>
+        <section id="player-status">
+            <h3>You:</h3>
+            <div>{{player.health}} / {{player.maxHealth}}</div>
+        </section>
+        <section id="actions">
+            <button v-on:click="attack">Attack</button>
+        </section>
+    </main>
+    <script src="https://unpkg.com/vue"></script>
+    <script src="https://cdn.jsdelivr.net/vue.resource/1.2.1/vue-resource.min.js"></script>
+    <script>
+        function generateGUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        var playerId = generateGUID();
+        var vue = new Vue({
+            el: 'main',
+            data: {
+                target: {
+
+                },
+                player: {
+
+                }
+            },
+            created: function () {
+                this.$http.post(`/players/${playerId}`)
+                .then(function(response) {
+                    return response.json();
+                }).then(function(body) {
+                    Object.assign(this.data, body);
+                });
+            },
+            methods: {
+                attack: function () {
+                    console.log('attacking');
+                    this.$http.post(`/players/${playerId}/attacks`);
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
