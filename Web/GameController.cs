@@ -24,16 +24,21 @@ namespace Dragon.Web
         public async Task<JoinGameResponse> JoinGame(Guid playerId)
         {
             logger.LogInformation($"Player {playerId} joined game");
+            var playerStatusTask = grainFactory.GetGrain<IPlayerGrain>(playerId).GetStatus();
+            var targetStatusTask = grainFactory.GetGrain<IMobGrain>("dragon").GetStatus();
+            await Task.WhenAll(playerStatusTask, targetStatusTask);
             return new JoinGameResponse {
-                Player = await grainFactory.GetGrain<IPlayerGrain>(playerId).GetStatus()
+                Player = playerStatusTask.Result,
+                Target = targetStatusTask.Result
             };
         }
 
         [Route("/players/{playerId}/attacks")]
         [HttpPost]
-        public void Attack(Guid playerId)
+        public async Task Attack(Guid playerId)
         {
             logger.LogInformation($"Player {playerId} attacking");
+            await grainFactory.GetGrain<IMobGrain>("dragon").BeAttacked(playerId);
         }
     }
 

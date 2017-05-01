@@ -15,7 +15,7 @@
             <img src="" />
             <div>{{target.health}} / {{target.maxHealth}}</div>
         </section>
-        <section id="player-status">
+        <section id="player-status" v-if="player">
             <h3>You:</h3>
             <div>{{player.health}} / {{player.maxHealth}}</div>
         </section>
@@ -36,12 +36,8 @@
         var vue = new Vue({
             el: 'main',
             data: {
-                target: {
-
-                },
-                player: {
-
-                }
+                target: null,
+                player: null
             },
             created: function () {
                 this.$http.post(`/players/${playerId}`)
