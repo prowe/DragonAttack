@@ -10,7 +10,7 @@
 
 <body>
     <main>
-        <section id="dragon-status">
+        <section id="dragon-status" v-if="target">
             <h3>Dragon:</h3>
             <img src="" />
             <div>{{target.health}} / {{target.maxHealth}}</div>
@@ -46,9 +46,8 @@
             created: function () {
                 this.$http.post(`/players/${playerId}`)
                 .then(function(response) {
-                    return response.json();
-                }).then(function(body) {
-                    Object.assign(this.data, body);
+                    this.player = response.body.player;
+                    this.target = response.body.target;
                 });
             },
             methods: {
