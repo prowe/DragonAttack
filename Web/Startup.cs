@@ -20,6 +20,7 @@ namespace Web
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddSingleton(CreateGrainFactory);
             services.AddMvc();
         }
 
@@ -37,6 +38,19 @@ namespace Web
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseMvc();
+        }
+
+        private IGrainFactory CreateGrainFactory(IServiceProvider services)
+        {
+            string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
+            var config = new ClientConfiguration();
+            config.GatewayProvider = ClientConfiguration.GatewayProviderType.AzureTable;
+            config.DeploymentId = "dev";
+            config.DataConnectionString = StorageConnectionString;
+            config.TraceFileName = null;
+            
+            GrainClient.Initialize(config);
+            return GrainClient.GrainFactory;
         }
     }
 }

@@ -1,29 +1,37 @@
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using Dragon.Shared;
+using System;
+using Orleans;
+using System.Threading.Tasks;
 
 namespace Dragon.Web
 {
     public class GameController : Controller
     {
         private readonly ILogger<GameController> logger;
+        private readonly IGrainFactory grainFactory;
 
-        public GameController(ILogger<GameController> logger)
+        public GameController(ILogger<GameController> logger, IGrainFactory grainFactory)
         {
             this.logger = logger;
+            this.grainFactory = grainFactory;
         }
 
         [Route("/players/{playerId}")]
         [HttpPost]
-        public JoinGameResponse JoinGame(string playerId)
+        public async Task<JoinGameResponse> JoinGame(Guid playerId)
         {
             logger.LogInformation($"Player {playerId} joined game");
-            return new JoinGameResponse();
+            return new JoinGameResponse {
+                Player = await grainFactory.GetGrain<IPlayerGrain>(playerId).GetStatus()
+            };
         }
 
         [Route("/players/{playerId}/attacks")]
         [HttpPost]
-        public void Attack(string playerId)
+        public void Attack(Guid playerId)
         {
             logger.LogInformation($"Player {playerId} attacking");
         }
@@ -33,11 +41,5 @@ namespace Dragon.Web
     {
         public GameCharacterStatus Player { get; set; }
         public GameCharacterStatus Target { get; set; }
-    }
-
-    public class GameCharacterStatus
-    {
-        public int Health { get; set; } = 100;
-        public int MaxHealth { get; set; } = 100;
     }
 }
