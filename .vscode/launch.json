@@ -8,11 +8,11 @@
             "preLaunchTask": "build",
             "program": "${workspaceRoot}/Web/bin/Debug/netcoreapp1.1/Web.dll",
             "args": [],
-            "cwd": "${workspaceRoot}",
+            "cwd": "${workspaceRoot}/Web",
             "stopAtEntry": false,
             "internalConsoleOptions": "openOnSessionStart",
             "launchBrowser": {
-                "enabled": true,
+                "enabled": false,
                 "args": "${auto-detect-url}",
                 "windows": {
                     "command": "cmd.exe",
@@ -30,7 +30,8 @@
             },
             "sourceFileMap": {
                 "/Views": "${workspaceRoot}/Views"
-            }
+            },
+            "justMyCode": false
         },
         {
             "name": ".NET Core Attach",

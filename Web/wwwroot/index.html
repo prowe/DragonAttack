@@ -45,8 +45,32 @@
                     this.player = response.body.player;
                     this.target = response.body.target;
                 });
+                this.subscribeToNotifications();
             },
             methods: {
+                subscribeToNotifications: function() {
+                    var scheme = document.location.protocol == "https:" ? "wss" : "ws";
+                    var port = document.location.port ? (":" + document.location.port) : "";
+                    var socketUrl = `${scheme}://${document.location.hostname}${port}/players/${playerId}/notifications`
+                    
+                    var socket = new WebSocket(socketUrl);
+                    window.socket = socket;
+                    socket.onopen = function(event) {
+                        console.log("opened connection to " + socketUrl);
+                    };
+                    socket.onclose = function(event) {
+                        console.log("closed connection from " + socketUrl);
+                    };
+                    socket.onmessage = function(event) {
+                        console.log("got: ", event);
+                    };
+                    socket.onerror = function(event) {
+                        console.log("error: ", event);
+                    };
+                },
+                onPlayerNotification: function(event) {
+                    console.log('Got message: ', event);
+                },
                 attack: function () {
                     console.log('attacking');
                     this.$http.post(`/players/${playerId}/attacks`);

@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -7,8 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Runtime.Configuration;
-using Orleans.Runtime.Host;
-using System.Net;
+using Orleans.Streams;
 
 namespace Web
 {
@@ -20,7 +18,9 @@ namespace Web
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
+            ConfigureOrleans();
             services.AddSingleton(CreateGrainFactory);
+            services.AddSingleton<IStreamProvider>(GrainClient.GetStreamProvider("Default"));
             services.AddMvc();
         }
 
@@ -37,10 +37,11 @@ namespace Web
 
             app.UseDefaultFiles();
             app.UseStaticFiles();
+            app.UseWebSockets();
             app.UseMvc();
         }
 
-        private IGrainFactory CreateGrainFactory(IServiceProvider services)
+        private void ConfigureOrleans()
         {
             string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
             var config = new ClientConfiguration();
@@ -48,8 +49,12 @@ namespace Web
             config.DeploymentId = "dev";
             config.DataConnectionString = StorageConnectionString;
             config.TraceFileName = null;
-            
+            config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
             GrainClient.Initialize(config);
+        }
+
+        private IGrainFactory CreateGrainFactory(IServiceProvider services)
+        {
             return GrainClient.GrainFactory;
         }
     }

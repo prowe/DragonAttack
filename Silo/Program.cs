@@ -41,6 +41,11 @@ namespace Silo
                 providerName: "Default",
                 connectionString: StorageConnectionString
             );
+            config.AddAzureTableStorageProvider(
+                providerName: "PubSubStore",
+                connectionString: StorageConnectionString
+            );
+            config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
             return config;
         }
     }

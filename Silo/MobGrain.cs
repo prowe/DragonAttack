@@ -2,6 +2,8 @@ using System;
 using System.Threading.Tasks;
 using Dragon.Shared;
 using Orleans;
+using Orleans.Runtime;
+using Orleans.Streams;
 
 namespace Dragon.Silo
 {
@@ -9,22 +11,34 @@ namespace Dragon.Silo
     {
         private int maxHealth = 100;
         private int health = 100;
+        private IAsyncStream<GameCharacterStatus> eventStream;
+
+        public override Task OnActivateAsync()
+        {
+            var streamProvider = this.GetStreamProvider("Default");
+            eventStream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
+            return Task.CompletedTask;
+        }
 
         public Task<GameCharacterStatus> GetStatus()
         {
-            Console.WriteLine($"{IdentityString}: Getting status");
-            return Task.FromResult(new GameCharacterStatus {
-               Health = health,
-               MaxHealth = maxHealth 
-            });
+            GetLogger().TrackTrace($"{IdentityString}: Getting status");
+            return Task.FromResult(Status);
         }
 
-        public Task BeAttacked(Guid attackerId)
+        public async Task BeAttacked(Guid attackerId)
         {
+            GetLogger().TrackTrace($"{IdentityString}: being attacked");
             //TODO: add hate list
-            Console.WriteLine($"{IdentityString}: being attacked");
             health--;
-            return Task.CompletedTask;
+            
+            await eventStream.OnNextAsync(Status);
         }
+
+        private GameCharacterStatus Status => new GameCharacterStatus
+        {
+            Health = health,
+            MaxHealth = maxHealth
+        };
     }
 }

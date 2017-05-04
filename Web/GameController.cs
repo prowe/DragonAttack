@@ -5,6 +5,13 @@ using Dragon.Shared;
 using System;
 using Orleans;
 using System.Threading.Tasks;
+using System.Net.WebSockets;
+using Orleans.Streams;
+using Newtonsoft.Json;
+using System.Text;
+using System.Threading;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Dragon.Web
 {
@@ -12,11 +19,15 @@ namespace Dragon.Web
     {
         private readonly ILogger<GameController> logger;
         private readonly IGrainFactory grainFactory;
+        private readonly IStreamProvider streamProvider;
 
-        public GameController(ILogger<GameController> logger, IGrainFactory grainFactory)
+        private static readonly ISet<WebsocketDelegatingObserver> streamObservers = new HashSet<WebsocketDelegatingObserver>();
+
+        public GameController(ILogger<GameController> logger, IGrainFactory grainFactory, IStreamProvider streamProvider)
         {
             this.logger = logger;
             this.grainFactory = grainFactory;
+            this.streamProvider = streamProvider;
         }
 
         [Route("/players/{playerId}")]
@@ -40,7 +51,65 @@ namespace Dragon.Web
             logger.LogInformation($"Player {playerId} attacking");
             await grainFactory.GetGrain<IMobGrain>("dragon").BeAttacked(playerId);
         }
+
+        [Route("/players/{playerId}/notifications")]
+        [HttpGet]
+        public async void SubscribeToPlayerNotifications(Guid playerId)
+        {
+            if (HttpContext.WebSockets.IsWebSocketRequest)
+            {
+                WebSocket webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+                logger.LogInformation("Got web socket: " + webSocket + webSocket.State);
+                var payload = new ArraySegment<byte>(Encoding.UTF8.GetBytes("hello"));
+                await webSocket.SendAsync(payload, WebSocketMessageType.Text, true, CancellationToken.None);
+
+                await webSocket.SendAsync(payload, WebSocketMessageType.Text, true, CancellationToken.None);
+            
+                var observer = new WebsocketDelegatingObserver(webSocket, this);
+                var stream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
+                await stream.SubscribeAsync(observer);
+                    
+
+            }
+            else
+            {
+                logger.LogWarning("Invalid websocket request");
+                HttpContext.Response.StatusCode = 400;
+            }
+        }
+        private class WebsocketDelegatingObserver : IAsyncObserver<GameCharacterStatus>
+        {
+            private readonly WebSocket webSocket;
+            private readonly GameController controller;
+
+            public WebsocketDelegatingObserver(WebSocket webSocket, GameController gameController)
+            {
+                this.webSocket = webSocket;
+                this.controller = gameController;
+            }
+
+            public Task OnCompletedAsync()
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task OnErrorAsync(Exception ex)
+            {
+                return Task.CompletedTask;
+            }
+
+            public Task OnNextAsync(GameCharacterStatus item, StreamSequenceToken token = null)
+            {
+                if (webSocket?.State == WebSocketState.Open) {
+                    string json = JsonConvert.SerializeObject(item);
+                    var payload = new ArraySegment<byte>(Encoding.UTF8.GetBytes(json));
+                    return webSocket.SendAsync(payload, WebSocketMessageType.Text, true, CancellationToken.None);
+                }
+                return Task.CompletedTask;
+            }
+        }
     }
+
 
     public class JoinGameResponse
     {
