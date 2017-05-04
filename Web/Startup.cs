@@ -49,7 +49,8 @@ namespace Web
             config.DeploymentId = "dev";
             config.DataConnectionString = StorageConnectionString;
             config.TraceFileName = null;
-            config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
+            //config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
+            config.AddSimpleMessageStreamProvider("Default");
             GrainClient.Initialize(config);
         }
 

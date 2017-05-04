@@ -2,6 +2,7 @@ using System;
 using System.Threading.Tasks;
 using Dragon.Shared;
 using Orleans;
+using Orleans.Core;
 using Orleans.Runtime;
 using Orleans.Streams;
 
@@ -12,7 +13,7 @@ namespace Dragon.Silo
         private int maxHealth = 100;
         private int health = 100;
         private IAsyncStream<GameCharacterStatus> eventStream;
-
+        
         public override Task OnActivateAsync()
         {
             var streamProvider = this.GetStreamProvider("Default");
@@ -32,7 +33,7 @@ namespace Dragon.Silo
             //TODO: add hate list
             health--;
             
-            await eventStream.OnNextAsync(Status);
+            eventStream.OnNextAsync(Status);
         }
 
         private GameCharacterStatus Status => new GameCharacterStatus

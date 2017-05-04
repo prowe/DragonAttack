@@ -44,8 +44,8 @@
                 .then(function(response) {
                     this.player = response.body.player;
                     this.target = response.body.target;
-                });
-                this.subscribeToNotifications();
+                })
+                .then(this.subscribeToNotifications);
             },
             methods: {
                 subscribeToNotifications: function() {
@@ -61,15 +61,18 @@
                     socket.onclose = function(event) {
                         console.log("closed connection from " + socketUrl);
                     };
-                    socket.onmessage = function(event) {
-                        console.log("got: ", event);
-                    };
+                    socket.onmessage = this.onServerEvent;
                     socket.onerror = function(event) {
                         console.log("error: ", event);
                     };
                 },
-                onPlayerNotification: function(event) {
+                onServerEvent: function(event) {
                     console.log('Got message: ', event);
+                    var payload = JSON.parse(event.data);
+
+                    var gameChar = this.target;
+                    gameChar.health = payload.health || payload.Health;
+                    gameChar.maxHealth = payload.maxHealth || payload.MaxHealth;
                 },
                 attack: function () {
                     console.log('attacking');
