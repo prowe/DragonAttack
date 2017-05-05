@@ -28,16 +28,11 @@ namespace Dragon.Web
             this.logger = logger;
         }
 
-        public async Task Handle(HttpContext httpContext, Func<Task> next)
+        public Task Handle(HttpContext httpContext, Func<Task> next)
         {
-            if (httpContext.WebSockets.IsWebSocketRequest)
-            {
-                await HandleWebsocket(httpContext);
-            }
-            else
-            {
-                await next();
-            }
+            return httpContext.WebSockets.IsWebSocketRequest
+                ? HandleWebsocket(httpContext)
+                : next();
         }
 
         private async Task HandleWebsocket(HttpContext httpContext)
