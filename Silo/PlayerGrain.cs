@@ -13,12 +13,14 @@ namespace Dragon.Silo
         public Task<GameCharacterStatus> GetStatus()
         {
             Console.WriteLine($"{IdentityString}: Getting status");
-            return Task.FromResult(new GameCharacterStatus
-            {
-                Id = this.GetGrainIdentity().PrimaryKey.ToString(),
-                Health = health,
-                MaxHealth = maxHealth
-            });
+            return Task.FromResult(Status);
         }
+
+        private GameCharacterStatus Status => new GameCharacterStatus
+        {
+            Id = this.GetGrainIdentity().PrimaryKey.ToString(),
+            Health = health,
+            MaxHealth = maxHealth
+        };
     }
 }

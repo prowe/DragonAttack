@@ -34,36 +34,41 @@
             },
             created: function () {
                 this.$http.post(`/players/`)
-                .then(function(response) {
-                    this.player = response.body.player;
-                    this.target = response.body.target;
-                })
-                .then(this.subscribeToNotifications);
+                    .then(function (response) {
+                        this.player = response.body.player;
+                        this.target = response.body.target;
+                    })
+                    .then(this.subscribeToNotifications);
             },
             methods: {
-                subscribeToNotifications: function() {
+                subscribeToNotifications: function () {
                     var playerId = this.player.id;
                     var scheme = document.location.protocol == "https:" ? "wss" : "ws";
                     var port = document.location.port ? (":" + document.location.port) : "";
                     var socketUrl = `${scheme}://${document.location.hostname}${port}/players/${playerId}/notifications`
-                    
+
                     var socket = new WebSocket(socketUrl);
                     window.socket = socket;
-                    socket.onopen = function(event) {
+                    socket.onopen = function (event) {
                         console.log("opened connection to " + socketUrl);
                     };
-                    socket.onclose = function(event) {
+                    socket.onclose = function (event) {
                         console.log("closed connection from " + socketUrl);
                     };
                     socket.onmessage = this.onServerEvent;
-                    socket.onerror = function(event) {
+                    socket.onerror = function (event) {
                         console.log("error: ", event);
                     };
                 },
-                onServerEvent: function(event) {
+                onServerEvent: function (event) {
                     console.log('Got message: ', event);
                     var payload = JSON.parse(event.data);
-                    this.target = payload;
+                    if (payload.id == this.target.id) {
+                        this.target = payload;
+                    }
+                    if (payload.id == this.player.id) {
+                        this.player = payload;
+                    }
                 },
                 attack: function () {
                     console.log('attacking');
