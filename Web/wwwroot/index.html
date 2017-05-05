@@ -26,13 +26,6 @@
     <script src="https://unpkg.com/vue"></script>
     <script src="https://cdn.jsdelivr.net/vue.resource/1.2.1/vue-resource.min.js"></script>
     <script>
-        function generateGUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-        var playerId = generateGUID();
         var vue = new Vue({
             el: 'main',
             data: {
@@ -40,7 +33,7 @@
                 player: null
             },
             created: function () {
-                this.$http.post(`/players/${playerId}`)
+                this.$http.post(`/players/`)
                 .then(function(response) {
                     this.player = response.body.player;
                     this.target = response.body.target;
@@ -49,6 +42,7 @@
             },
             methods: {
                 subscribeToNotifications: function() {
+                    var playerId = this.player.id;
                     var scheme = document.location.protocol == "https:" ? "wss" : "ws";
                     var port = document.location.port ? (":" + document.location.port) : "";
                     var socketUrl = `${scheme}://${document.location.hostname}${port}/players/${playerId}/notifications`
@@ -69,13 +63,11 @@
                 onServerEvent: function(event) {
                     console.log('Got message: ', event);
                     var payload = JSON.parse(event.data);
-
-                    var gameChar = this.target;
-                    gameChar.health = payload.health || payload.Health;
-                    gameChar.maxHealth = payload.maxHealth || payload.MaxHealth;
+                    this.target = payload;
                 },
                 attack: function () {
                     console.log('attacking');
+                    var playerId = this.player.id;
                     this.$http.post(`/players/${playerId}/attacks`);
                 }
             }

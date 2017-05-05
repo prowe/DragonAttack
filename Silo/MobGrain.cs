@@ -13,7 +13,7 @@ namespace Dragon.Silo
         private int maxHealth = 100;
         private int health = 100;
         private IAsyncStream<GameCharacterStatus> eventStream;
-        
+
         public override Task OnActivateAsync()
         {
             var streamProvider = this.GetStreamProvider("Default");
@@ -38,6 +38,7 @@ namespace Dragon.Silo
 
         private GameCharacterStatus Status => new GameCharacterStatus
         {
+            Id = this.GetGrainIdentity().PrimaryKeyString,
             Health = health,
             MaxHealth = maxHealth
         };

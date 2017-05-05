@@ -31,10 +31,11 @@ namespace Dragon.Web
             this.streamProvider = streamProvider;
         }
 
-        [Route("/players/{playerId}")]
+        [Route("/players")]
         [HttpPost]
-        public async Task<JoinGameResponse> JoinGame(Guid playerId)
+        public async Task<JoinGameResponse> JoinGame()
         {
+            Guid playerId = Guid.NewGuid();
             logger.LogInformation($"Player {playerId} joined game");
             var playerStatusTask = grainFactory.GetGrain<IPlayerGrain>(playerId).GetStatus();
             var targetStatusTask = grainFactory.GetGrain<IMobGrain>("dragon").GetStatus();
