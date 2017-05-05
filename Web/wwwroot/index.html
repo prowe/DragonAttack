@@ -45,7 +45,7 @@
                     var playerId = this.player.id;
                     var scheme = document.location.protocol == "https:" ? "wss" : "ws";
                     var port = document.location.port ? (":" + document.location.port) : "";
-                    var socketUrl = `${scheme}://${document.location.hostname}${port}/players/${playerId}/notifications`
+                    var socketUrl = `${scheme}://${document.location.hostname}${port}/notificatons?playerId=${playerId}`
 
                     var socket = new WebSocket(socketUrl);
                     window.socket = socket;

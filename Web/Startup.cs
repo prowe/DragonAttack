@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Net.WebSockets;
+using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -7,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using Orleans;
 using Orleans.Runtime.Configuration;
 using Orleans.Streams;
+using Dragon.Web;
 
 namespace Web
 {
@@ -21,6 +24,7 @@ namespace Web
             ConfigureOrleans();
             services.AddSingleton(CreateGrainFactory);
             services.AddSingleton<IStreamProvider>(GrainClient.GetStreamProvider("Default"));
+            services.AddSingleton<GameWebSocketHandler>();
             services.AddMvc();
         }
 
@@ -38,6 +42,7 @@ namespace Web
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseWebSockets();
+            app.Use(app.ApplicationServices.GetService<GameWebSocketHandler>().Handle);
             app.UseMvc();
         }
 
