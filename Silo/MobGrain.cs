@@ -18,7 +18,10 @@ namespace Dragon.Silo
         {
             var streamProvider = this.GetStreamProvider("Default");
             eventStream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
-            return Task.CompletedTask;
+
+            RegisterTimer(TakeTurn, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+
+            return base.OnActivateAsync();
         }
 
         public Task<GameCharacterStatus> GetStatus()
@@ -33,6 +36,19 @@ namespace Dragon.Silo
             //TODO: add hate list
             health--;
             
+            eventStream.OnNextAsync(Status);
+        }
+
+        private Task TakeTurn(object payload)
+        {
+            GetLogger().TrackTrace($"{IdentityString}: taking a turn");
+            Heal();
+            return Task.CompletedTask;
+        }
+
+        private void Heal()
+        {
+            health = Math.Min(maxHealth, health + 20);
             eventStream.OnNextAsync(Status);
         }
 
