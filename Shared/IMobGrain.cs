@@ -5,7 +5,7 @@ using Orleans;
 
 namespace Dragon.Shared
 {
-    public interface IMobGrain : IGrainWithStringKey
+    public interface IMobGrain : IGrainWithGuidKey
     {
         Task<GameCharacterStatus> GetStatus();
 

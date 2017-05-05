@@ -38,7 +38,7 @@ namespace Dragon.Web
             Guid playerId = Guid.NewGuid();
             logger.LogInformation($"Player {playerId} joined game");
             var playerStatusTask = grainFactory.GetGrain<IPlayerGrain>(playerId).GetStatus();
-            var targetStatusTask = grainFactory.GetGrain<IMobGrain>("dragon").GetStatus();
+            var targetStatusTask = grainFactory.GetGrain<IMobGrain>(Guid.Empty).GetStatus();
             await Task.WhenAll(playerStatusTask, targetStatusTask);
             return new JoinGameResponse {
                 Player = playerStatusTask.Result,
@@ -51,45 +51,59 @@ namespace Dragon.Web
         public async Task Attack(Guid playerId)
         {
             logger.LogInformation($"Player {playerId} attacking");
-            await grainFactory.GetGrain<IMobGrain>("dragon").BeAttacked(playerId);
+            await grainFactory.GetGrain<IMobGrain>(Guid.Empty).BeAttacked(playerId);
         }
 
         [Route("/players/{playerId}/notifications")]
         [HttpGet]
         public async void SubscribeToPlayerNotifications(Guid playerId)
         {
-            if (HttpContext.WebSockets.IsWebSocketRequest)
-            {
-                WebSocket webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
-                logger.LogInformation("Got web socket: " + webSocket + webSocket.State);
-            
-                var observer = new WebsocketDelegatingObserver(webSocket, this);
-                Task.Run(() => {
-                    var stream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
-                    stream.SubscribeAsync(observer);
-                });
-
-                while (webSocket.State == WebSocketState.Open)
-                {
-                    //await webSocket.SendAsync(payload, WebSocketMessageType.Text, true, CancellationToken.None);
-                    Thread.Sleep(5000);
-                }
-            }
-            else
+            if (!HttpContext.WebSockets.IsWebSocketRequest)
             {
                 logger.LogWarning("Invalid websocket request");
                 HttpContext.Response.StatusCode = 400;
+                return;
             }
+
+            WebSocket webSocket = await HttpContext.WebSockets.AcceptWebSocketAsync();
+            logger.LogInformation("Got web socket: " + webSocket + webSocket.State);
+            
+            var targetStream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
+            var playerStream = streamProvider.GetStream<GameCharacterStatus>(playerId, "PlayerGrain");
+            StreamSubscriptionHandle<GameCharacterStatus> targetStreamHandle = null;
+            /*Task.Run(async () => {
+                var observer = new WebsocketDelegatingObserver(webSocket);
+                targetStreamHandle = await targetStream.SubscribeAsync(observer);
+                //playerStream.SubscribeAsync(observer);
+            });
+            */
+
+            var observer = new WebsocketDelegatingObserver(webSocket);
+            var subscribeToTargetTask = SubscribeToStream(observer, Guid.Empty, "MobGrain");
+
+            while (webSocket.State == WebSocketState.Open)
+            {
+                Thread.Sleep(5000);
+            }
+            
+            
         }
+
+        private Task<StreamSubscriptionHandle<GameCharacterStatus>> SubscribeToStream(IAsyncObserver<GameCharacterStatus> observer, Guid streamId, string streamNamespace)
+        {
+            var stream = streamProvider.GetStream<GameCharacterStatus>(streamId, streamNamespace);
+            return Task.Run(() => {
+                return stream.SubscribeAsync(observer);
+            });
+        }
+
         private class WebsocketDelegatingObserver : IAsyncObserver<GameCharacterStatus>
         {
             private readonly WebSocket webSocket;
-            private readonly GameController controller;
 
-            public WebsocketDelegatingObserver(WebSocket webSocket, GameController gameController)
+            public WebsocketDelegatingObserver(WebSocket webSocket)
             {
                 this.webSocket = webSocket;
-                this.controller = gameController;
             }
 
             public Task OnCompletedAsync()
@@ -120,31 +134,6 @@ namespace Dragon.Web
                     new JsonSerializerSettings { ContractResolver = new CamelCasePropertyNamesContractResolver() }
                 );
             }
-        }
-    }
-
-    public class LoggingObserver : IAsyncObserver<GameCharacterStatus>
-    {
-        private readonly ILogger<GameController> logger;
-
-        public LoggingObserver(ILogger<GameController> logger)
-        {
-            this.logger = logger;
-        }
-        public Task OnCompletedAsync()
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task OnErrorAsync(Exception ex)
-        {
-            return Task.CompletedTask;
-        }
-
-        public Task OnNextAsync(GameCharacterStatus item, StreamSequenceToken token = null)
-        {
-            logger.LogInformation("Got event: " + item);
-            return Task.CompletedTask;
         }
     }
 

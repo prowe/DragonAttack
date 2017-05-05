@@ -18,7 +18,7 @@ namespace Dragon.Silo
 
         private GameCharacterStatus Status => new GameCharacterStatus
         {
-            Id = this.GetGrainIdentity().PrimaryKey.ToString(),
+            Id = this.GetGrainIdentity().PrimaryKey,
             Health = health,
             MaxHealth = maxHealth
         };
