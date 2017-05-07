@@ -2,25 +2,44 @@ using System;
 using System.Threading.Tasks;
 using Dragon.Shared;
 using Orleans;
+using Orleans.Streams;
 
 namespace Dragon.Silo
 {
     public class PlayerGrain : Grain, IPlayerGrain
     {
-        private int maxHealth = 100;
-        private int health = 100;
+        private GameCharacterStatus status;
+        private IAsyncStream<GameCharacterStatus> eventStream;
+
+        public override Task OnActivateAsync()
+        {
+            this.status = new GameCharacterStatus
+            {
+                Id = this.GetGrainIdentity().PrimaryKey,
+                Health = 100,
+                MaxHealth = 100
+            };
+
+            var streamProvider = this.GetStreamProvider("Default");
+            eventStream = streamProvider.GetStream<GameCharacterStatus>(status.Id, "PlayerGrain");
+
+            return base.OnActivateAsync();
+        }
 
         public Task<GameCharacterStatus> GetStatus()
         {
             Console.WriteLine($"{IdentityString}: Getting status");
-            return Task.FromResult(Status);
+            return Task.FromResult(status);
         }
 
-        private GameCharacterStatus Status => new GameCharacterStatus
+        public Task BeAttacked(Guid attackerId)
         {
-            Id = this.GetGrainIdentity().PrimaryKey,
-            Health = health,
-            MaxHealth = maxHealth
-        };
+            var damage = 1;
+            GetLogger().TrackTrace($"{IdentityString}: being attacked");
+
+            status.DecrementHealth(damage);
+            eventStream.OnNextAsync(status);
+            return Task.CompletedTask;
+        }
     }
 }

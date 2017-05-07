@@ -10,9 +10,9 @@ namespace Dragon.Silo
 {
     public class MobGrain : Grain, IMobGrain
     {
-        private int maxHealth = 100;
-        private int health = 100;
+        private GameCharacterStatus status;
         private IAsyncStream<GameCharacterStatus> eventStream;
+        private readonly HateList hateList = new HateList();
 
         public override Task OnActivateAsync()
         {
@@ -21,42 +21,61 @@ namespace Dragon.Silo
 
             RegisterTimer(TakeTurn, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
 
+            this.status = new GameCharacterStatus
+            {
+                Id = this.GetGrainIdentity().PrimaryKey,
+                Health = 100,
+                MaxHealth = 100
+            };
+
             return base.OnActivateAsync();
         }
 
         public Task<GameCharacterStatus> GetStatus()
         {
             GetLogger().TrackTrace($"{IdentityString}: Getting status");
-            return Task.FromResult(Status);
+            return Task.FromResult(status);
         }
 
-        public async Task BeAttacked(Guid attackerId)
+        public Task BeAttacked(Guid attackerId)
         {
+            var damage = 1;
             GetLogger().TrackTrace($"{IdentityString}: being attacked");
-            //TODO: add hate list
-            health--;
-            
-            eventStream.OnNextAsync(Status);
+
+            status.DecrementHealth(damage);
+            hateList.RegisterDamage(attackerId, damage);
+            eventStream.OnNextAsync(status);
+            return Task.CompletedTask;
         }
 
-        private Task TakeTurn(object payload)
+        private async Task TakeTurn(object payload)
         {
             GetLogger().TrackTrace($"{IdentityString}: taking a turn");
-            Heal();
-            return Task.CompletedTask;
+
+            if (status.Health < 50) 
+            {
+                Heal();
+            }
+            else if (hateList.TopHated != null)
+            {
+                await Attack(hateList.TopHated.Value);
+            }
+            else
+            {
+                Heal();                
+            }
         }
 
         private void Heal()
         {
-            health = Math.Min(maxHealth, health + 20);
-            eventStream.OnNextAsync(Status);
+            status.IncrementHealth(20);
+            eventStream.OnNextAsync(status);
         }
 
-        private GameCharacterStatus Status => new GameCharacterStatus
+        private Task Attack(Guid target)
         {
-            Id = this.GetGrainIdentity().PrimaryKey,
-            Health = health,
-            MaxHealth = maxHealth
-        };
+            var player = GrainFactory.GetGrain<IPlayerGrain>(target);
+            return player.BeAttacked(this.GetGrainIdentity().PrimaryKey);
+        }
     }
 }
