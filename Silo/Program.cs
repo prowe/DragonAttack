@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using System.Threading;
+using Orleans;
 using Orleans.Runtime.Configuration;
 using Orleans.Runtime.Host;
 using Orleans.Storage;
@@ -27,7 +28,8 @@ namespace Silo
             Console.WriteLine("Using assembly path" +  assemblyName);
 
             string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
-                        var config = new ClusterConfiguration();
+            var config = new ClusterConfiguration();
+
             config.Globals.LivenessType = GlobalConfiguration.LivenessProviderType.AzureTable;
             config.Globals.ReminderServiceType = GlobalConfiguration.ReminderServiceProviderType.AzureTable;
             config.Globals.MembershipTableAssembly = assemblyName;
@@ -45,8 +47,10 @@ namespace Silo
                 providerName: "PubSubStore",
                 connectionString: StorageConnectionString
             );
-            //config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
-            config.AddSimpleMessageStreamProvider("Default");
+            config.AddSimpleMessageStreamProvider(
+                providerName: "Default",
+                fireAndForgetDelivery: true
+            );
             return config;
         }
     }

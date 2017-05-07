@@ -37,15 +37,14 @@ namespace Dragon.Silo
             return Task.FromResult(status);
         }
 
-        public Task BeAttacked(Guid attackerId)
+        public async Task BeAttacked(Guid attackerId)
         {
             var damage = 1;
             GetLogger().TrackTrace($"{IdentityString}: being attacked");
 
             status.DecrementHealth(damage);
             hateList.RegisterDamage(attackerId, damage);
-            eventStream.OnNextAsync(status);
-            return Task.CompletedTask;
+            await eventStream.OnNextAsync(status);
         }
 
         private async Task TakeTurn(object payload)
@@ -54,7 +53,7 @@ namespace Dragon.Silo
 
             if (status.Health < 50) 
             {
-                Heal();
+                await Heal();
             }
             else if (hateList.TopHated != null)
             {
@@ -62,14 +61,14 @@ namespace Dragon.Silo
             }
             else
             {
-                Heal();                
+                await Heal();                
             }
         }
 
-        private void Heal()
+        private async Task Heal()
         {
             status.IncrementHealth(20);
-            eventStream.OnNextAsync(status);
+            await eventStream.OnNextAsync(status);
         }
 
         private Task Attack(Guid target)
