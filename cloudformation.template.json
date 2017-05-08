@@ -1,0 +1,141 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Demo app for virtual actors by Paul Rowe",
+    "Parameters": {
+        "Version": {
+            "Description": "Version of the infrastructure build that deployed this stack. Used for tracking and to always force a change",
+            "Type": "String",
+            "Default": "Unknown"
+        }
+    },
+    "Resources": {
+        "LogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+                "RetentionInDays": 30
+            }
+        },
+        "TaskDefinition": {
+            "Type": "AWS::ECS::TaskDefinition",
+            "Metadata": {
+                "Version": {
+                    "Ref": "Version"
+                }
+            },
+            "Properties": {
+                "ContainerDefinitions": [
+                    {
+                        "Name": "web",
+                        "Cpu": "256",
+                        "Essential": "true",
+                        "Image": "httpd:alpine",
+                        "Memory": "512",
+                        "Command": "",
+                        "PortMappings": [
+                            {
+                                "HostPort": 40080,
+                                "ContainerPort": 80
+                            }
+                        ],
+                        "LogConfiguration": {
+                            "LogDriver": "awslogs",
+                            "Options": {
+                                "awslogs-group": {
+                                    "Ref": "LogGroup"
+                                },
+                                "awslogs-region": "us-east-1"
+                            }
+                        }
+                    },
+                    {
+                        "Name": "silo",
+                        "Cpu": "256",
+                        "Essential": "true",
+                        "Image": "httpd:alpine",
+                        "Memory": "512",
+                        "PortMappings": [
+                            {
+                                "HostPort": 40000,
+                                "ContainerPort": 40000
+                            },
+                            {
+                                "HostPort": 40001,
+                                "ContainerPort": 40001
+                            }
+                        ],
+                        "Command": "cd /app/Silo && dotnet run --no-build",
+                        "LogConfiguration": {
+                            "LogDriver": "awslogs",
+                            "Options": {
+                                "awslogs-group": {
+                                    "Ref": "LogGroup"
+                                },
+                                "awslogs-region": "us-east-1"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "Service": {
+            "Type": "AWS::ECS::Service",
+            "Metadata": {
+                "Version": {
+                    "Ref": "Version"
+                }
+            },
+            "Properties": {
+                "Cluster": {
+                    "Fn::ImportValue": "ECSDefaultCluster-ClusterName"
+                },
+                "DesiredCount": "1",
+                "LoadBalancers": [
+                    {
+                        "ContainerName": "web",
+                        "ContainerPort": "80",
+                        "LoadBalancerName": {
+                            "Ref": "LoadBalancer"
+                        }
+                    }
+                ],
+                "Role": {
+                    "Fn::ImportValue": "ECSDefaultCluster-ServiceRoleARN"
+                },
+                "TaskDefinition": {
+                    "Ref": "TaskDefinition"
+                },
+                "DeploymentConfiguration": {
+                    "MinimumHealthyPercent": "100",
+                    "MaximumPercent": "200"
+                }
+            }
+        },
+        "LoadBalancer": {
+            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+            "Properties": {
+                "AvailabilityZones": [
+                    "us-east-1b"
+                ],
+                "SecurityGroups": [
+                    {
+                        "Fn::ImportValue": "BaseNetworking-PublicSecurityGroupId"
+                    }
+                ],
+                "Listeners": [
+                    {
+                        "LoadBalancerPort": "80",
+                        "InstancePort": 40080,
+                        "Protocol": "HTTP"
+                    }
+                ],
+                "HealthCheck": {
+                    "Target": "HTTP:40080/",
+                    "HealthyThreshold": "2",
+                    "UnhealthyThreshold": "5",
+                    "Interval": "60",
+                    "Timeout": "45"
+                }
+            }
+        }
+    }
+}
