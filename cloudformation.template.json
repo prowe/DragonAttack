@@ -51,7 +51,8 @@
                         "Name": "silo",
                         "Cpu": "256",
                         "Essential": "true",
-                        "Image": "httpd:alpine",
+                        "Image": "prowe/DragonAttack",
+                        "Command": "cd /app/Silo && dotnet run --no-build",
                         "Memory": "512",
                         "PortMappings": [
                             {
@@ -63,7 +64,6 @@
                                 "ContainerPort": 40001
                             }
                         ],
-                        "Command": "cd /app/Silo && dotnet run --no-build",
                         "LogConfiguration": {
                             "LogDriver": "awslogs",
                             "Options": {
