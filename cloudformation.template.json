@@ -30,7 +30,6 @@
                         "Essential": "true",
                         "Image": "httpd:alpine",
                         "Memory": "512",
-                        "Command": "",
                         "PortMappings": [
                             {
                                 "HostPort": 40080,
@@ -52,7 +51,8 @@
                         "Cpu": "256",
                         "Essential": "true",
                         "Image": "prowe/DragonAttack",
-                        "Command": "cd /app/Silo && dotnet run --no-build",
+                        "WorkingDirectory": "/app/Silo",
+                        "Command": ["dotnet", "run", "--no-build"],
                         "Memory": "512",
                         "PortMappings": [
                             {

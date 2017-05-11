@@ -12,6 +12,7 @@
         .status {
             margin: 5pt;
             margin-bottom: 10pt;
+            position: relative;
         }
         .status H3 {
             margin: 0;
@@ -63,6 +64,25 @@
             width: 100%;
             height: 25pt;
         }
+
+        .banner {
+            position: absolute;
+            top: 45%;
+            left: 0;
+            display: block;
+            height: 100%;
+            width: 100%;
+            font-weight: bold;
+            font-size: 30pt;
+            text-align: center;
+        }
+        .victory-banner {
+            color: green;
+        }
+        .defeat-banner {
+            color: red;
+        }
+
     </style>
 </head>
 
@@ -71,7 +91,8 @@
         <section id="dragon-status" class="status" v-if="target">
             <h3>Dragon:</h3>
             <img class="avatar" src="dragon_small.jpeg" />
-
+            <span class="victory-banner banner" v-if="target.health == 0">Victory</span>
+            <span class="defeat-banner banner" v-if="player.health == 0">Victory</span>
             <div class="health-bar">
                 <span v-bind:style="healthBarStyle(target)"></span>
             </div>

@@ -15,14 +15,14 @@ namespace Dragon.Silo
         private HateList hateList;
         private IDisposable turnTimer;
 
-        public override Task OnActivateAsync()
+        public override async Task OnActivateAsync()
         {
             var streamProvider = this.GetStreamProvider("Default");
             eventStream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
 
             Spawn();
 
-            return base.OnActivateAsync();
+            await base.OnActivateAsync();
         }
 
         public Task<GameCharacterStatus> GetStatus()
@@ -66,24 +66,27 @@ namespace Dragon.Silo
 
         private async Task Heal()
         {
+            GetLogger().TrackTrace($"{IdentityString}: Healing");
             status.IncrementHealth(20);
             await eventStream.OnNextAsync(status);
         }
 
         private Task Attack(Guid target)
         {
+            GetLogger().TrackTrace($"{IdentityString}: Attacking {target}");
             var player = GrainFactory.GetGrain<IPlayerGrain>(target);
             return player.BeAttacked(this.GetGrainIdentity().PrimaryKey);
         }
 
         private void Spawn()
         {
+            GetLogger().TrackTrace($"{IdentityString}: Spawning");
             this.turnTimer = RegisterTimer(TakeTurn, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
             this.hateList = new HateList();
             this.status = new GameCharacterStatus
             {
                 Id = this.GetGrainIdentity().PrimaryKey,
-                Health = 100,
+                Health = 10,
                 MaxHealth = 100
             };
         }
@@ -94,13 +97,14 @@ namespace Dragon.Silo
             {
                 this.turnTimer.Dispose();
             }
-            RegisterOrUpdateReminder("Respawn", TimeSpan.FromSeconds(30), TimeSpan.MaxValue);
+            RegisterOrUpdateReminder("Respawn", TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(90));
         }
 
-        public Task ReceiveReminder(string reminderName, TickStatus status)
+        public async Task ReceiveReminder(string reminderName, TickStatus status)
         {
             Spawn();
-            return Task.CompletedTask;
+            var reminder = await GetReminder(reminderName);
+            await UnregisterReminder(reminder);
         }
     }
 }
