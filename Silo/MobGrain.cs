@@ -8,25 +8,19 @@ using Orleans.Streams;
 
 namespace Dragon.Silo
 {
-    public class MobGrain : Grain, IMobGrain
+    public class MobGrain : Grain, IMobGrain, IRemindable
     {
         private GameCharacterStatus status;
         private IAsyncStream<GameCharacterStatus> eventStream;
-        private readonly HateList hateList = new HateList();
+        private HateList hateList;
+        private IDisposable turnTimer;
 
         public override Task OnActivateAsync()
         {
             var streamProvider = this.GetStreamProvider("Default");
             eventStream = streamProvider.GetStream<GameCharacterStatus>(Guid.Empty, "MobGrain");
 
-            RegisterTimer(TakeTurn, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
-
-            this.status = new GameCharacterStatus
-            {
-                Id = this.GetGrainIdentity().PrimaryKey,
-                Health = 100,
-                MaxHealth = 100
-            };
+            Spawn();
 
             return base.OnActivateAsync();
         }
@@ -44,6 +38,10 @@ namespace Dragon.Silo
 
             status.DecrementHealth(damage);
             hateList.RegisterDamage(attackerId, damage);
+            if(status.Health <= 0)
+            {
+                Die();
+            }
             await eventStream.OnNextAsync(status);
         }
 
@@ -63,6 +61,7 @@ namespace Dragon.Silo
             {
                 await Heal();                
             }
+            hateList.FadeHate();
         }
 
         private async Task Heal()
@@ -75,6 +74,33 @@ namespace Dragon.Silo
         {
             var player = GrainFactory.GetGrain<IPlayerGrain>(target);
             return player.BeAttacked(this.GetGrainIdentity().PrimaryKey);
+        }
+
+        private void Spawn()
+        {
+            this.turnTimer = RegisterTimer(TakeTurn, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+            this.hateList = new HateList();
+            this.status = new GameCharacterStatus
+            {
+                Id = this.GetGrainIdentity().PrimaryKey,
+                Health = 100,
+                MaxHealth = 100
+            };
+        }
+
+        private void Die()
+        {
+            if(this.turnTimer != null)
+            {
+                this.turnTimer.Dispose();
+            }
+            RegisterOrUpdateReminder("Respawn", TimeSpan.FromSeconds(30), TimeSpan.MaxValue);
+        }
+
+        public Task ReceiveReminder(string reminderName, TickStatus status)
+        {
+            Spawn();
+            return Task.CompletedTask;
         }
     }
 }
