@@ -4,20 +4,83 @@
 <head>
     <title>Dragon Attack!</title>
     <style>
+        MAIN {
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .status {
+            margin: 5pt;
+            margin-bottom: 10pt;
+        }
+        .status H3 {
+            margin: 0;
+        }
+        .status .avatar {
+            margin: auto;
+            height: auto;
+            width: 100%;
+            display: block;
+        }
 
+        .health-bar {
+            margin-top: 5pt;
+            height: 10pt;  /* Can be anything */
+            position: relative;
+            background: #888;
+            -moz-border-radius: 25pt;
+            -webkit-border-radius: 25pt;
+            border-radius: 25pt;
+            padding: 5pt;
+            box-shadow: inset 0 -1px 1px rgba(255,255,255,0.3);
+        }
+        .health-bar > span {
+            display: block;
+            height: 100%;
+            border-top-right-radius: 12pt;
+            border-bottom-right-radius: 12pt;
+            border-top-left-radius: 12pt;
+            border-bottom-left-radius: 12pt;
+            background-color: #f0a3a3;
+            background-image: -webkit-linear-gradient(#f0a3a3, #f42323);
+            background-image: -moz-linear-gradient(#f0a3a3, #f42323);
+            background-image: -o-linear-gradient(#f0a3a3, #f42323);
+            background-image: linear-gradient(#f0a3a3, #f42323);
+            box-shadow: 
+                inset 0 2px 9px  rgba(255,255,255,0.3),
+                inset 0 -2px 6px rgba(0,0,0,0.4);
+            position: relative;
+            overflow: hidden;
+            -webkit-transition: width 1s; /* For Safari 3.1 to 6.0 */
+            transition: width 1s;
+        }
+
+        #actions {
+            margin: 5pt;
+        }
+        #actions BUTTON {
+            display: block;
+            width: 100%;
+            height: 25pt;
+        }
     </style>
 </head>
 
 <body>
     <main>
-        <section id="dragon-status" v-if="target">
+        <section id="dragon-status" class="status" v-if="target">
             <h3>Dragon:</h3>
-            <img src="" />
-            <div>{{target.health}} / {{target.maxHealth}}</div>
+            <img class="avatar" src="dragon_small.jpeg" />
+
+            <div class="health-bar">
+                <span v-bind:style="healthBarStyle(target)"></span>
+            </div>
         </section>
         <section id="player-status" v-if="player">
             <h3>You:</h3>
-            <div>{{player.health}} / {{player.maxHealth}}</div>
+            <div class="health-bar">
+                <span v-bind:style="healthBarStyle(player)"></span>
+            </div>
         </section>
         <section id="actions">
             <button v-on:click="attack">Attack</button>
@@ -26,12 +89,13 @@
     <script src="https://unpkg.com/vue"></script>
     <script src="https://cdn.jsdelivr.net/vue.resource/1.2.1/vue-resource.min.js"></script>
     <script>
+        data = {
+            target: null,
+            player: null
+        };
         var vue = new Vue({
             el: 'main',
-            data: {
-                target: null,
-                player: null
-            },
+            data: data,
             created: function () {
                 this.$http.post(`/players/`)
                     .then(function (response) {
@@ -41,6 +105,12 @@
                     .then(this.subscribeToNotifications);
             },
             methods: {
+                healthBarStyle: function(status) {
+                    var percent = status.health == 0 ? 0 : status.health / status.maxHealth;
+                    return {
+                        width: (percent * 100) + '%'
+                    };
+                },
                 subscribeToNotifications: function () {
                     var playerId = this.player.id;
                     var scheme = document.location.protocol == "https:" ? "wss" : "ws";
