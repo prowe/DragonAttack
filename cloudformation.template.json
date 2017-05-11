@@ -15,7 +15,7 @@
                 "RetentionInDays": 30
             }
         },
-        "TaskDefinition": {
+        "SiloTaskDefinition": {
             "Type": "AWS::ECS::TaskDefinition",
             "Metadata": {
                 "Version": {
@@ -23,36 +23,19 @@
                 }
             },
             "Properties": {
+                "NetworkMode": "host",
                 "ContainerDefinitions": [
-                    {
-                        "Name": "web",
-                        "Cpu": "256",
-                        "Essential": "true",
-                        "Image": "httpd:alpine",
-                        "Memory": "512",
-                        "PortMappings": [
-                            {
-                                "HostPort": 40080,
-                                "ContainerPort": 80
-                            }
-                        ],
-                        "LogConfiguration": {
-                            "LogDriver": "awslogs",
-                            "Options": {
-                                "awslogs-group": {
-                                    "Ref": "LogGroup"
-                                },
-                                "awslogs-region": "us-east-1"
-                            }
-                        }
-                    },
                     {
                         "Name": "silo",
                         "Cpu": "256",
                         "Essential": "true",
-                        "Image": "prowe/DragonAttack",
+                        "Image": "prowe/dragonattack:latest",
                         "WorkingDirectory": "/app/Silo",
-                        "Command": ["dotnet", "run", "--no-build"],
+                        "Command": [
+                            "dotnet",
+                            "run",
+                            "--no-build"
+                        ],
                         "Memory": "512",
                         "PortMappings": [
                             {
@@ -77,7 +60,69 @@
                 ]
             }
         },
-        "Service": {
+        "SiloService": {
+            "Type": "AWS::ECS::Service",
+            "Metadata": {
+                "Version": {
+                    "Ref": "Version"
+                }
+            },
+            "Properties": {
+                "Cluster": {
+                    "Fn::ImportValue": "ECSDefaultCluster-ClusterName"
+                },
+                "DesiredCount": "1",
+                "TaskDefinition": {
+                    "Ref": "SiloTaskDefinition"
+                },
+                "DeploymentConfiguration": {
+                    "MinimumHealthyPercent": "100",
+                    "MaximumPercent": "200"
+                }
+            }
+        },
+        "WebTaskDefinition": {
+            "Type": "AWS::ECS::TaskDefinition",
+            "Metadata": {
+                "Version": {
+                    "Ref": "Version"
+                }
+            },
+            "DependsOn" : "SiloService",
+            "Properties": {
+                "ContainerDefinitions": [
+                    {
+                        "Name": "web",
+                        "Cpu": "256",
+                        "Essential": "true",
+                        "Image": "prowe/dragonattack:latest",
+                        "WorkingDirectory": "/app/Web",
+                        "Command": [
+                            "dotnet",
+                            "run",
+                            "--no-build"
+                        ],
+                        "Memory": "512",
+                        "PortMappings": [
+                            {
+                                "HostPort": 40080,
+                                "ContainerPort": 5000
+                            }
+                        ],
+                        "LogConfiguration": {
+                            "LogDriver": "awslogs",
+                            "Options": {
+                                "awslogs-group": {
+                                    "Ref": "LogGroup"
+                                },
+                                "awslogs-region": "us-east-1"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "WebService": {
             "Type": "AWS::ECS::Service",
             "Metadata": {
                 "Version": {
@@ -92,7 +137,7 @@
                 "LoadBalancers": [
                     {
                         "ContainerName": "web",
-                        "ContainerPort": "80",
+                        "ContainerPort": "5000",
                         "LoadBalancerName": {
                             "Ref": "LoadBalancer"
                         }
@@ -102,7 +147,7 @@
                     "Fn::ImportValue": "ECSDefaultCluster-ServiceRoleARN"
                 },
                 "TaskDefinition": {
-                    "Ref": "TaskDefinition"
+                    "Ref": "WebTaskDefinition"
                 },
                 "DeploymentConfiguration": {
                     "MinimumHealthyPercent": "100",
@@ -134,7 +179,22 @@
                     "UnhealthyThreshold": "5",
                     "Interval": "60",
                     "Timeout": "45"
-                }
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "EnableProxyProtocol",
+                        "PolicyType": "ProxyProtocolPolicyType",
+                        "Attributes": [
+                            {
+                                "Name": "ProxyProtocol",
+                                "Value": "true"
+                            }
+                        ],
+                        "InstancePorts": [
+                            40080
+                        ]
+                    }
+                ]
             }
         }
     }

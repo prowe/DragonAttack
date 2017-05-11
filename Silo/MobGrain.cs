@@ -40,7 +40,7 @@ namespace Dragon.Silo
             hateList.RegisterDamage(attackerId, damage);
             if(status.Health <= 0)
             {
-                Die();
+                await Die();
             }
             await eventStream.OnNextAsync(status);
         }
@@ -91,13 +91,13 @@ namespace Dragon.Silo
             };
         }
 
-        private void Die()
+        private async Task Die()
         {
             if(this.turnTimer != null)
             {
                 this.turnTimer.Dispose();
             }
-            RegisterOrUpdateReminder("Respawn", TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(90));
+            await RegisterOrUpdateReminder("Respawn", TimeSpan.FromSeconds(90), TimeSpan.FromSeconds(90));
         }
 
         public async Task ReceiveReminder(string reminderName, TickStatus status)
