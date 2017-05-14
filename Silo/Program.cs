@@ -24,21 +24,34 @@ namespace Silo
 
         private static ClusterConfiguration BuildAzureClusterConfig() 
         {   
-            var assemblyName = typeof(AzureTableStorage).AssemblyQualifiedName;
-            Console.WriteLine("Using assembly path" +  assemblyName);
+            var config = new ClusterConfiguration();
+            var siloAddress = new IPEndPoint(IPAddress.Loopback, 40000);
+            config.Globals.LivenessType = GlobalConfiguration.LivenessProviderType.MembershipTableGrain;
+            config.Globals.SeedNodes.Add(siloAddress);
+            config.Globals.ReminderServiceType = GlobalConfiguration.ReminderServiceProviderType.ReminderTableGrain;
+
+            config.Defaults.HostNameOrIPAddress = "localhost";
+            config.Defaults.Port = 40000;
+            config.Defaults.ProxyGatewayEndpoint = new IPEndPoint(IPAddress.Any, 40001);
+
+            config.PrimaryNode = siloAddress;
+            
+            //var assemblyName = typeof(AzureTableStorage).AssemblyQualifiedName;
+            //Console.WriteLine("Using assembly path" +  assemblyName);
 
             string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
-            var config = new ClusterConfiguration();
-
+            //var config = new ClusterConfiguration();
+            /* 
             config.Globals.LivenessType = GlobalConfiguration.LivenessProviderType.AzureTable;
             config.Globals.ReminderServiceType = GlobalConfiguration.ReminderServiceProviderType.AzureTable;
             config.Globals.MembershipTableAssembly = assemblyName;
-            config.Globals.DeploymentId = "dev";
+            config.Globals.DeploymentId = Environment.GetEnvironmentVariable("DeploymentId") ?? "dev";
             config.Globals.DataConnectionString = StorageConnectionString;
             config.Defaults.Port = 40000;
             config.Defaults.ProxyGatewayEndpoint = new IPEndPoint(IPAddress.Any, 40001);
             config.Defaults.TraceFileName = null;
             config.Defaults.TraceFilePattern = null;
+            //config.Defaults.HostNameOrIPAddress = BroadcastAddress;
             config.AddAzureTableStorageProvider(
                 providerName: "Default",
                 connectionString: StorageConnectionString
@@ -47,11 +60,20 @@ namespace Silo
                 providerName: "PubSubStore",
                 connectionString: StorageConnectionString
             );
+            */
             config.AddSimpleMessageStreamProvider(
                 providerName: "Default",
                 fireAndForgetDelivery: true
             );
             return config;
+        }
+
+        private static string BroadcastAddress
+        {
+            get
+            {
+                return "10.0.0.1";
+            }
         }
     }
 }

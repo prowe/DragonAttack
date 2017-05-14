@@ -10,13 +10,14 @@ using Orleans;
 using Orleans.Runtime.Configuration;
 using Orleans.Streams;
 using Dragon.Web;
+using static Orleans.Runtime.Configuration.ClientConfiguration;
+using System.Net;
+using System.Linq;
 
 namespace Web
 {
     public class Startup
     {
-        public IConfigurationRoot Configuration { get; }
-
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
@@ -48,20 +49,39 @@ namespace Web
 
         private void ConfigureOrleans()
         {
+            var config = new ClientConfiguration ();
+            config.GatewayProvider = GatewayProviderType.Config;
+
+            
+            config.Gateways.Add(new IPEndPoint(GetSiloIpAddress(), 40001));
+
+            config.TraceFileName = null;
+            config.AddSimpleMessageStreamProvider("Default");
+            /*
             string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
             var config = new ClientConfiguration();
             config.GatewayProvider = ClientConfiguration.GatewayProviderType.AzureTable;
-            config.DeploymentId = "dev";
+            config.DeploymentId = Configuration.GetValue<string>("DeploymentId", "dev");
             config.DataConnectionString = StorageConnectionString;
-            config.TraceFileName = null;
             //config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
-            config.AddSimpleMessageStreamProvider("Default");
+            */
             GrainClient.Initialize(config);
         }
 
         private IGrainFactory CreateGrainFactory(IServiceProvider services)
         {
             return GrainClient.GrainFactory;
+        }
+
+        private IPAddress GetSiloIpAddress()
+        {
+            var siloHost = Environment.GetEnvironmentVariable("SiloHost");
+            if(siloHost != null)
+            {
+                var hostAddresses =  Dns.GetHostAddressesAsync(siloHost).Result;
+                return hostAddresses.First();
+            }
+            return IPAddress.Loopback;
         }
     }
 }
