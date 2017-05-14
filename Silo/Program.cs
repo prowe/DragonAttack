@@ -56,11 +56,11 @@ namespace Silo
                 providerName: "Default",
                 connectionString: StorageConnectionString
             );
+            */
             config.AddAzureTableStorageProvider(
                 providerName: "PubSubStore",
                 connectionString: StorageConnectionString
             );
-            */
             config.AddSimpleMessageStreamProvider(
                 providerName: "Default",
                 fireAndForgetDelivery: true
