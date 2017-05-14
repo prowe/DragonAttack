@@ -21,7 +21,7 @@
                 "RetentionInDays": 30
             }
         },
-        "SiloTaskDefinition": {
+        "TaskDefinition": {
             "Type": "AWS::ECS::TaskDefinition",
             "Metadata": {
                 "Version": {
@@ -60,42 +60,17 @@
                                 },
                                 "awslogs-region": "us-east-1"
                             }
-                        }
-                    }
-                ]
-            }
-        },
-        "SiloService": {
-            "Type": "AWS::ECS::Service",
-            "Metadata": {
-                "Version": {
-                    "Ref": "Version"
-                }
-            },
-            "Properties": {
-                "Cluster": {
-                    "Fn::ImportValue": "ECSDefaultCluster-ClusterName"
-                },
-                "DesiredCount": "1",
-                "TaskDefinition": {
-                    "Ref": "SiloTaskDefinition"
-                },
-                "DeploymentConfiguration": {
-                    "MinimumHealthyPercent": "100",
-                    "MaximumPercent": "200"
-                }
-            }
-        },
-        "WebTaskDefinition": {
-            "Type": "AWS::ECS::TaskDefinition",
-            "Metadata": {
-                "Version": {
-                    "Ref": "Version"
-                }
-            },
-            "DependsOn" : "SiloService",
-            "Properties": {
-                "ContainerDefinitions": [
+                        },
+                        "Environment": [
+                            {
+                                "Name" : "SiloHost",
+                                "Value" : "Silo" 
+                            }
+                        ],
+                        "Links": [
+                            "Silo"
+                        ]
+                    },
                     {
                         "Name": "web",
                         "Cpu": "256",
@@ -127,7 +102,7 @@
                 ]
             }
         },
-        "WebService": {
+        "Service": {
             "Type": "AWS::ECS::Service",
             "Metadata": {
                 "Version": {
@@ -152,7 +127,7 @@
                     "Fn::ImportValue": "ECSDefaultCluster-ServiceRoleARN"
                 },
                 "TaskDefinition": {
-                    "Ref": "WebTaskDefinition"
+                    "Ref": "TaskDefinition"
                 },
                 "DeploymentConfiguration": {
                     "MinimumHealthyPercent": "100",
