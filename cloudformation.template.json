@@ -60,16 +60,7 @@
                                 },
                                 "awslogs-region": "us-east-1"
                             }
-                        },
-                        "Environment": [
-                            {
-                                "Name" : "SiloHost",
-                                "Value" : "Silo" 
-                            }
-                        ],
-                        "Links": [
-                            "Silo"
-                        ]
+                        }
                     },
                     {
                         "Name": "web",
@@ -97,7 +88,16 @@
                                 },
                                 "awslogs-region": "us-east-1"
                             }
-                        }
+                        },
+                        "Environment": [
+                            {
+                                "Name" : "SiloHost",
+                                "Value" : "silo" 
+                            }
+                        ],
+                        "Links": [
+                            "silo"
+                        ]
                     }
                 ]
             }
@@ -130,8 +130,8 @@
                     "Ref": "TaskDefinition"
                 },
                 "DeploymentConfiguration": {
-                    "MinimumHealthyPercent": "100",
-                    "MaximumPercent": "200"
+                    "MinimumHealthyPercent": "0",
+                    "MaximumPercent": "100"
                 }
             }
         },
