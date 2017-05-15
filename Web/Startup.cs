@@ -78,7 +78,9 @@ namespace Web
             var siloHost = Environment.GetEnvironmentVariable("SiloHost");
             if(siloHost != null)
             {
+                Console.WriteLine("Attempting to resolve silo to host: " + siloHost);
                 var hostAddresses =  Dns.GetHostAddressesAsync(siloHost).Result;
+                Console.WriteLine("Resolved silo host to ", hostAddresses);
                 return hostAddresses.First();
             }
             return IPAddress.Loopback;

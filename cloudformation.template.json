@@ -6,6 +6,10 @@
             "Description": "Version of the infrastructure build that deployed this stack. Used for tracking and to always force a change",
             "Type": "String",
             "Default": "Unknown"
+        },
+        "VPCId": {
+            "Type": "String",
+            "Default": "vpc-65a65202"
         }
     },
     "Resources": {
@@ -91,8 +95,8 @@
                         },
                         "Environment": [
                             {
-                                "Name" : "SiloHost",
-                                "Value" : "silo" 
+                                "Name": "SiloHost",
+                                "Value": "silo "
                             }
                         ],
                         "Links": [
@@ -118,8 +122,8 @@
                     {
                         "ContainerName": "web",
                         "ContainerPort": "5000",
-                        "LoadBalancerName": {
-                            "Ref": "LoadBalancer"
+                        "TargetGroupArn":{
+                            "Ref":"ECSTG"
                         }
                     }
                 ],
@@ -135,44 +139,100 @@
                 }
             }
         },
-        "LoadBalancer": {
-            "Type": "AWS::ElasticLoadBalancing::LoadBalancer",
+        "ECSALB": {
+            "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
             "Properties": {
-                "AvailabilityZones": [
-                    "us-east-1b"
+                "Scheme": "internet-facing",
+                "Subnets": [
+                    "subnet-7d6d270b",
+                    "subnet-d897febd",
+                    "subnet-1fd84335",
+                    "subnet-dd1a49e0",
+                    "subnet-a0fa9bf8"
                 ],
                 "SecurityGroups": [
                     {
                         "Fn::ImportValue": "BaseNetworking-PublicSecurityGroupId"
-                    }
-                ],
-                "Listeners": [
+                    } 
+                ]
+            }
+        },
+        "ALBListener": {
+            "Type": "AWS::ElasticLoadBalancingV2::Listener",
+            "Properties": {
+                "DefaultActions": [
                     {
-                        "LoadBalancerPort": "80",
-                        "InstancePort": 40080,
-                        "Protocol": "HTTP"
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "ECSTG"
+                        }
                     }
                 ],
-                "HealthCheck": {
-                    "Target": "HTTP:40080/",
-                    "HealthyThreshold": "2",
-                    "UnhealthyThreshold": "5",
-                    "Interval": "60",
-                    "Timeout": "45"
+                "LoadBalancerArn": {
+                    "Ref": "ECSALB"
                 },
-                "Policies": [
+                "Port": "80",
+                "Protocol": "HTTP"
+            }
+        },
+        "ECSALBListenerRule": {
+            "Type": "AWS::ElasticLoadBalancingV2::ListenerRule",
+            "DependsOn": "ALBListener",
+            "Properties": {
+                "Actions": [
                     {
-                        "PolicyName": "EnableProxyProtocol",
-                        "PolicyType": "ProxyProtocolPolicyType",
-                        "Attributes": [
-                            {
-                                "Name": "ProxyProtocol",
-                                "Value": "true"
-                            }
-                        ],
-                        "InstancePorts": [
-                            40080
+                        "Type": "forward",
+                        "TargetGroupArn": {
+                            "Ref": "ECSTG"
+                        }
+                    }
+                ],
+                "Conditions": [
+                    {
+                        "Field": "path-pattern",
+                        "Values": [
+                            "/"
                         ]
+                    }
+                ],
+                "ListenerArn": {
+                    "Ref": "ALBListener"
+                },
+                "Priority": 1
+            }
+        },
+        "ECSTG": {
+            "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+            "DependsOn": "ECSALB",
+            "Properties": {
+                "Port": 40080,
+                "Protocol": "HTTP",
+                "VpcId": { "Ref": "VPCId" }
+            }
+        },
+        "DNSEntry": {
+            "Type": "AWS::Route53::RecordSetGroup",
+            "Properties": {
+                "HostedZoneName": "dev.sourceallies.com.",
+                "Comment": "Demo app for vitual actors (Paul R)",
+                "RecordSets": [
+                    {
+                        "Name": "dragon.dev.sourceallies.com",
+                        "Type": "A",
+                        "AliasTarget": {
+                            "HostedZoneId": {
+                                "Fn::GetAtt": [
+                                    "ECSALB",
+                                    "CanonicalHostedZoneID"
+                                ]
+                            },
+                            "DNSName": {
+                                "Fn::GetAtt": [
+                                    "ECSALB",
+                                    "DNSName"
+                                ]
+                            }
+                        }
                     }
                 ]
             }
