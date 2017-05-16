@@ -65,9 +65,30 @@ namespace Web
             config.DataConnectionString = StorageConnectionString;
             //config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
             */
-            Console.WriteLine("Sleeping for 5 sec before connecting to silo");
-            Thread.Sleep(5000);
-            GrainClient.Initialize(config);
+
+            int remainingAttempts = 10;
+            while(true)
+            {
+                try
+                {
+                    GrainClient.Initialize(config);
+                    break;
+                }
+                catch (Exception e)
+                {
+                    Console.WriteLine("Failed to start client. remaining #" + remainingAttempts + " " + e);
+                    if(remainingAttempts <= 0)
+                    {
+                        throw;
+                    }
+                    else
+                    {
+                        remainingAttempts--;
+                        Thread.Sleep(TimeSpan.FromSeconds(2));
+                    }
+                }
+            }
+            Console.WriteLine("Grain client init complete");
         }
 
         private IGrainFactory CreateGrainFactory(IServiceProvider services)
