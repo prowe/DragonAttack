@@ -65,6 +65,8 @@ namespace Web
             config.DataConnectionString = StorageConnectionString;
             //config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
             */
+            Console.WriteLine("Sleeping for 5 sec before connecting to silo");
+            Thread.Sleep(5000);
             GrainClient.Initialize(config);
         }
 
@@ -80,7 +82,7 @@ namespace Web
             {
                 Console.WriteLine("Attempting to resolve silo to host: " + siloHost);
                 var hostAddresses =  Dns.GetHostAddressesAsync(siloHost).Result;
-                Console.WriteLine("Resolved silo host to ", hostAddresses);
+                Console.WriteLine("Found: " + string.Join<IPAddress>(" ", hostAddresses));
                 return hostAddresses.First();
             }
             return IPAddress.Loopback;

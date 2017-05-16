@@ -35,7 +35,7 @@
             "Properties": {
                 "ContainerDefinitions": [
                     {
-                        "Name": "silo",
+                        "Name": "dragon-silo",
                         "Cpu": "256",
                         "Essential": "true",
                         "Image": "prowe/dragonattack:latest",
@@ -73,15 +73,13 @@
                         "Image": "prowe/dragonattack:latest",
                         "WorkingDirectory": "/app/Web",
                         "Command": [
-                            "dotnet",
-                            "run",
-                            "--no-build"
+                            "dotnet", "run", "--no-build"
                         ],
                         "Memory": "512",
                         "PortMappings": [
                             {
                                 "HostPort": 40080,
-                                "ContainerPort": 5000
+                                "ContainerPort": 80
                             }
                         ],
                         "LogConfiguration": {
@@ -96,11 +94,11 @@
                         "Environment": [
                             {
                                 "Name": "SiloHost",
-                                "Value": "silo "
+                                "Value": "dragon-silo"
                             }
                         ],
                         "Links": [
-                            "silo"
+                            "dragon-silo"
                         ]
                     }
                 ]
@@ -121,7 +119,7 @@
                 "LoadBalancers": [
                     {
                         "ContainerName": "web",
-                        "ContainerPort": "5000",
+                        "ContainerPort": "80",
                         "TargetGroupArn":{
                             "Ref":"ECSTG"
                         }
@@ -208,33 +206,6 @@
                 "Port": 40080,
                 "Protocol": "HTTP",
                 "VpcId": { "Ref": "VPCId" }
-            }
-        },
-        "DNSEntry": {
-            "Type": "AWS::Route53::RecordSetGroup",
-            "Properties": {
-                "HostedZoneName": "dev.sourceallies.com.",
-                "Comment": "Demo app for vitual actors (Paul R)",
-                "RecordSets": [
-                    {
-                        "Name": "dragon.dev.sourceallies.com",
-                        "Type": "A",
-                        "AliasTarget": {
-                            "HostedZoneId": {
-                                "Fn::GetAtt": [
-                                    "ECSALB",
-                                    "CanonicalHostedZoneID"
-                                ]
-                            },
-                            "DNSName": {
-                                "Fn::GetAtt": [
-                                    "ECSALB",
-                                    "DNSName"
-                                ]
-                            }
-                        }
-                    }
-                ]
             }
         }
     }

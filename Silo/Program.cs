@@ -67,13 +67,5 @@ namespace Silo
             );
             return config;
         }
-
-        private static string BroadcastAddress
-        {
-            get
-            {
-                return "10.0.0.1";
-            }
-        }
     }
 }
