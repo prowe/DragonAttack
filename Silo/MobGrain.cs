@@ -86,7 +86,7 @@ namespace Dragon.Silo
             this.status = new GameCharacterStatus
             {
                 Id = this.GetGrainIdentity().PrimaryKey,
-                Health = 10,
+                Health = 100,
                 MaxHealth = 100
             };
         }

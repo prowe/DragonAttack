@@ -79,7 +79,7 @@
                         "PortMappings": [
                             {
                                 "HostPort": 40080,
-                                "ContainerPort": 80
+                                "ContainerPort": 5000
                             }
                         ],
                         "LogConfiguration": {
@@ -119,7 +119,7 @@
                 "LoadBalancers": [
                     {
                         "ContainerName": "web",
-                        "ContainerPort": "80",
+                        "ContainerPort": "5000",
                         "TargetGroupArn":{
                             "Ref":"ECSTG"
                         }
@@ -206,6 +206,39 @@
                 "Port": 40080,
                 "Protocol": "HTTP",
                 "VpcId": { "Ref": "VPCId" }
+            }
+        },
+        "DNSEntry": {
+            "Type": "AWS::Route53::RecordSetGroup",
+            "DependsOn": [
+                {"Ref": "ECSALB"},
+                {"Ref": "ECSTG"},
+                {"Ref": "ALBListener"},
+                {"Ref": "ECSALBListenerRule"}
+            ],
+            "Properties": {
+                "HostedZoneName": "dev.sourceallies.com.",
+                "Comment": "Demo app for vitual actors (Paul R)",
+                "RecordSets": [
+                    {
+                        "Name": "dragon.dev.sourceallies.com",
+                        "Type": "A",
+                        "AliasTarget": {
+                            "HostedZoneId": {
+                                "Fn::GetAtt": [
+                                    "ECSALB",
+                                    "CanonicalHostedZoneID"
+                                ]
+                            },
+                            "DNSName": {
+                                "Fn::GetAtt": [
+                                    "ECSALB",
+                                    "DNSName"
+                                ]
+                            }
+                        }
+                    }
+                ]
             }
         }
     }

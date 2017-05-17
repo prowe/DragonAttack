@@ -16,8 +16,8 @@ namespace Dragon.Silo
             this.status = new GameCharacterStatus
             {
                 Id = this.GetGrainIdentity().PrimaryKey,
-                Health = 100,
-                MaxHealth = 100
+                Health = 15,
+                MaxHealth = 15
             };
 
             var streamProvider = this.GetStreamProvider("Default");
