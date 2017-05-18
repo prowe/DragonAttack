@@ -210,12 +210,7 @@
         },
         "DNSEntry": {
             "Type": "AWS::Route53::RecordSetGroup",
-            "DependsOn": [
-                {"Ref": "ECSALB"},
-                {"Ref": "ECSTG"},
-                {"Ref": "ALBListener"},
-                {"Ref": "ECSALBListenerRule"}
-            ],
+            "DependsOn": [ "ECSALB", "ECSTG", "ALBListener", "ECSALBListenerRule" ],
             "Properties": {
                 "HostedZoneName": "dev.sourceallies.com.",
                 "Comment": "Demo app for vitual actors (Paul R)",

@@ -24,6 +24,7 @@ namespace Silo
 
         private static ClusterConfiguration BuildAzureClusterConfig() 
         {   
+            string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
             var config = new ClusterConfiguration();
             var siloAddress = new IPEndPoint(IPAddress.Loopback, 40000);
             config.Globals.LivenessType = GlobalConfiguration.LivenessProviderType.MembershipTableGrain;
@@ -35,28 +36,7 @@ namespace Silo
             config.Defaults.ProxyGatewayEndpoint = new IPEndPoint(IPAddress.Any, 40001);
 
             config.PrimaryNode = siloAddress;
-            
-            //var assemblyName = typeof(AzureTableStorage).AssemblyQualifiedName;
-            //Console.WriteLine("Using assembly path" +  assemblyName);
 
-            string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
-            //var config = new ClusterConfiguration();
-            /* 
-            config.Globals.LivenessType = GlobalConfiguration.LivenessProviderType.AzureTable;
-            config.Globals.ReminderServiceType = GlobalConfiguration.ReminderServiceProviderType.AzureTable;
-            config.Globals.MembershipTableAssembly = assemblyName;
-            config.Globals.DeploymentId = Environment.GetEnvironmentVariable("DeploymentId") ?? "dev";
-            config.Globals.DataConnectionString = StorageConnectionString;
-            config.Defaults.Port = 40000;
-            config.Defaults.ProxyGatewayEndpoint = new IPEndPoint(IPAddress.Any, 40001);
-            config.Defaults.TraceFileName = null;
-            config.Defaults.TraceFilePattern = null;
-            //config.Defaults.HostNameOrIPAddress = BroadcastAddress;
-            config.AddAzureTableStorageProvider(
-                providerName: "Default",
-                connectionString: StorageConnectionString
-            );
-            */
             config.AddAzureTableStorageProvider(
                 providerName: "PubSubStore",
                 connectionString: StorageConnectionString
