@@ -37,10 +37,15 @@ namespace Silo
 
             config.PrimaryNode = siloAddress;
 
+            config.AddMemoryStorageProvider(
+                providerName: "PubSubStore"
+            );
+
+            /*
             config.AddAzureTableStorageProvider(
-                providerName: "PubSubStore",
                 connectionString: StorageConnectionString
             );
+            */
             config.AddSimpleMessageStreamProvider(
                 providerName: "Default",
                 fireAndForgetDelivery: true
