@@ -33,6 +33,7 @@ namespace Silo
 
             config.Defaults.HostNameOrIPAddress = "localhost";
             config.Defaults.Port = 40000;
+            config.Defaults.TraceFileName = null;
             config.Defaults.ProxyGatewayEndpoint = new IPEndPoint(IPAddress.Any, 40001);
 
             config.PrimaryNode = siloAddress;
@@ -41,11 +42,6 @@ namespace Silo
                 providerName: "PubSubStore"
             );
 
-            /*
-            config.AddAzureTableStorageProvider(
-                connectionString: StorageConnectionString
-            );
-            */
             config.AddSimpleMessageStreamProvider(
                 providerName: "Default",
                 fireAndForgetDelivery: true

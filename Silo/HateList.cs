@@ -35,9 +35,17 @@ namespace Dragon.Silo
         public void FadeHate()
         {
             damageByAttacker = damageByAttacker
-                .ToDictionary(kv => kv.Key, kv => kv.Value - 1);
+                .ToDictionary(kv => kv.Key, kv => (kv.Value / 2));
         }
 
+        public override string ToString()
+        {
+            return "HateList: \n\t" + string.Join("\n\t", 
+                damageByAttacker
+                    .OrderByDescending(kv => kv.Value)
+                    .Select(kv => $"{kv.Key}\t{kv.Value}")
+            );
+        }
         private void cleanupHateList()
         {
             damageByAttacker = damageByAttacker

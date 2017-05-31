@@ -62,6 +62,7 @@ namespace Dragon.Silo
                 await Heal();                
             }
             hateList.FadeHate();
+            GetLogger().TrackTrace($"Resulting state: Health={status.Health} {hateList}");
         }
 
         private async Task Heal()
