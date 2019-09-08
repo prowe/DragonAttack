@@ -1,45 +1,41 @@
 ﻿using System;
-using System.Net.WebSockets;
-using System.Threading;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Orleans;
-using Orleans.Runtime.Configuration;
 using Orleans.Streams;
+using Orleans.Configuration;
 using Dragon.Web;
-using static Orleans.Runtime.Configuration.ClientConfiguration;
-using System.Net;
-using System.Linq;
+using Microsoft.AspNetCore.Mvc;
+using Orleans.Hosting;
 
 namespace Web
 {
     public class Startup
     {
+        public IConfiguration Configuration { get; }
+
+        public Startup(IConfiguration configuration)
+        {
+            Configuration = configuration;
+        }
+
         // This method gets called by the runtime. Use this method to add services to the container.
         // For more information on how to configure your application, visit https://go.microsoft.com/fwlink/?LinkID=398940
         public void ConfigureServices(IServiceCollection services)
         {
-            ConfigureOrleans();
-            services.AddSingleton(CreateGrainFactory);
-            services.AddSingleton<IStreamProvider>(GrainClient.GetStreamProvider("Default"));
+            services.AddSingleton(CreateOrleansClient);
+            services.AddSingleton(GetGrainFactory);
+            services.AddSingleton<IStreamProvider>(GetStreamProvider);
             services.AddSingleton<GameWebSocketHandler>();
-            services.AddMvc();
+            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+        public void Configure(IApplicationBuilder app, Microsoft.AspNetCore.Hosting.IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
-            loggerFactory.AddConsole();
-            loggerFactory.AddDebug();
-
-            if (env.IsDevelopment())
-            {
-                app.UseDeveloperExceptionPage();
-            }
-
             app.UseDefaultFiles();
             app.UseStaticFiles();
             app.UseWebSockets();
@@ -47,66 +43,30 @@ namespace Web
             app.UseMvc();
         }
 
-        private void ConfigureOrleans()
+        private IClusterClient CreateOrleansClient(IServiceProvider services)
         {
-            var config = new ClientConfiguration ();
-            config.GatewayProvider = GatewayProviderType.Config;
-
-            
-            config.Gateways.Add(new IPEndPoint(GetSiloIpAddress(), 40001));
-
-            config.TraceFileName = null;
-            config.AddSimpleMessageStreamProvider("Default");
-            /*
-            string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
-            var config = new ClientConfiguration();
-            config.GatewayProvider = ClientConfiguration.GatewayProviderType.AzureTable;
-            config.DeploymentId = Configuration.GetValue<string>("DeploymentId", "dev");
-            config.DataConnectionString = StorageConnectionString;
-            //config.AddAzureQueueStreamProviderV2("Default", StorageConnectionString);
-            */
-
-            int remainingAttempts = 10;
-            while(true)
-            {
-                try
+            IClusterClient client = new ClientBuilder()
+                .UseLocalhostClustering()
+                .Configure<ClusterOptions>(options =>
                 {
-                    GrainClient.Initialize(config);
-                    break;
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine("Failed to start client. remaining #" + remainingAttempts + " " + e);
-                    if(remainingAttempts <= 0)
-                    {
-                        throw;
-                    }
-                    else
-                    {
-                        remainingAttempts--;
-                        Thread.Sleep(TimeSpan.FromSeconds(2));
-                    }
-                }
-            }
-            Console.WriteLine("Grain client init complete");
+                    options.ClusterId = "dev";
+                    options.ServiceId = "HelloWorldApp";
+                })
+                .AddSimpleMessageStreamProvider("Default")
+                .ConfigureLogging(logging => logging.AddConsole())
+                .Build();
+            client.Connect().Wait();
+            return client;
         }
 
-        private IGrainFactory CreateGrainFactory(IServiceProvider services)
+        private IStreamProvider GetStreamProvider(IServiceProvider services)
         {
-            return GrainClient.GrainFactory;
+            return services.GetRequiredService<IClusterClient>().GetStreamProvider("Default");
         }
 
-        private IPAddress GetSiloIpAddress()
+        private IGrainFactory GetGrainFactory(IServiceProvider services)
         {
-            var siloHost = Environment.GetEnvironmentVariable("SiloHost");
-            if(siloHost != null)
-            {
-                Console.WriteLine("Attempting to resolve silo to host: " + siloHost);
-                var hostAddresses =  Dns.GetHostAddressesAsync(siloHost).Result;
-                Console.WriteLine("Found: " + string.Join<IPAddress>(" ", hostAddresses));
-                return hostAddresses.First();
-            }
-            return IPAddress.Loopback;
+            return services.GetRequiredService<IClusterClient>();
         }
     }
 }

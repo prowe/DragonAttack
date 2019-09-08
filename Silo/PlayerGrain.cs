@@ -3,13 +3,20 @@ using System.Threading.Tasks;
 using Dragon.Shared;
 using Orleans;
 using Orleans.Streams;
+using Microsoft.Extensions.Logging;
 
 namespace Dragon.Silo
 {
     public class PlayerGrain : Grain, IPlayerGrain
     {
+        private readonly ILogger<PlayerGrain> logger;
         private GameCharacterStatus status;
         private IAsyncStream<GameCharacterStatus> eventStream;
+
+        public PlayerGrain(ILogger<PlayerGrain> logger)
+        {
+            this.logger = logger;
+        }
 
         public override Task OnActivateAsync()
         {
@@ -35,7 +42,7 @@ namespace Dragon.Silo
         public Task BeAttacked(Guid attackerId)
         {
             var damage = 1;
-            GetLogger().TrackTrace($"{IdentityString}: being attacked");
+            logger.LogTrace($"{IdentityString}: being attacked");
 
             status.DecrementHealth(damage);
             eventStream.OnNextAsync(status);

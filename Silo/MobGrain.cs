@@ -5,15 +5,22 @@ using Orleans;
 using Orleans.Core;
 using Orleans.Runtime;
 using Orleans.Streams;
+using Microsoft.Extensions.Logging;
 
 namespace Dragon.Silo
 {
     public class MobGrain : Grain, IMobGrain, IRemindable
     {
+        private readonly ILogger<MobGrain> logger;
         private GameCharacterStatus status;
         private IAsyncStream<GameCharacterStatus> eventStream;
         private HateList hateList;
         private IDisposable turnTimer;
+
+        public MobGrain(ILogger<MobGrain> logger)
+        {
+            this.logger = logger;
+        }
 
         public override async Task OnActivateAsync()
         {
@@ -27,14 +34,14 @@ namespace Dragon.Silo
 
         public Task<GameCharacterStatus> GetStatus()
         {
-            GetLogger().TrackTrace($"{IdentityString}: Getting status");
+            logger.LogTrace($"{IdentityString}: Getting status");
             return Task.FromResult(status);
         }
 
         public async Task BeAttacked(Guid attackerId)
         {
             var damage = 1;
-            GetLogger().TrackTrace($"{IdentityString}: being attacked");
+            logger.LogTrace($"{IdentityString}: being attacked");
 
             status.DecrementHealth(damage);
             hateList.RegisterDamage(attackerId, damage);
@@ -47,9 +54,9 @@ namespace Dragon.Silo
 
         private async Task TakeTurn(object payload)
         {
-            GetLogger().TrackTrace($"{IdentityString}: taking a turn");
+            logger.LogTrace($"{IdentityString}: taking a turn");
 
-            if (status.Health < 50) 
+            if (status.Health < 50)
             {
                 await Heal();
             }
@@ -59,29 +66,29 @@ namespace Dragon.Silo
             }
             else
             {
-                await Heal();                
+                await Heal();
             }
             hateList.FadeHate();
-            GetLogger().TrackTrace($"Resulting state: Health={status.Health} {hateList}");
+            logger.LogTrace($"Resulting state: Health={status.Health} {hateList}");
         }
 
         private async Task Heal()
         {
-            GetLogger().TrackTrace($"{IdentityString}: Healing");
+            logger.LogTrace($"{IdentityString}: Healing");
             status.IncrementHealth(20);
             await eventStream.OnNextAsync(status);
         }
 
         private Task Attack(Guid target)
         {
-            GetLogger().TrackTrace($"{IdentityString}: Attacking {target}");
+            logger.LogTrace($"{IdentityString}: Attacking {target}");
             var player = GrainFactory.GetGrain<IPlayerGrain>(target);
             return player.BeAttacked(this.GetGrainIdentity().PrimaryKey);
         }
 
         private void Spawn()
         {
-            GetLogger().TrackTrace($"{IdentityString}: Spawning");
+            logger.LogTrace($"{IdentityString}: Spawning");
             this.turnTimer = RegisterTimer(TakeTurn, null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
             this.hateList = new HateList();
             this.status = new GameCharacterStatus

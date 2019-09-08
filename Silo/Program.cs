@@ -1,52 +1,60 @@
 ﻿using System;
 using System.Net;
-using System.Threading;
+using System.Threading.Tasks;
 using Orleans;
-using Orleans.Runtime.Configuration;
-using Orleans.Runtime.Host;
-using Orleans.Storage;
+using Orleans.Configuration;
+using Microsoft.Extensions.Logging;
+using Orleans.Hosting;
+using Dragon.Silo;
 
 namespace Silo
 {
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            var config = BuildAzureClusterConfig();
-            var siloHost = new SiloHost(Dns.GetHostName(), config);
-            siloHost.LoadOrleansConfig();
-
-            siloHost.InitializeOrleansSilo();
-            siloHost.StartOrleansSilo(false);
-
-            Thread.Sleep(Timeout.Infinite);
+            return MainAsync().Result;
         }
 
-        private static ClusterConfiguration BuildAzureClusterConfig() 
-        {   
-            string StorageConnectionString  = "DefaultEndpointsProtocol=https;AccountName=prowemarket;AccountKey=4JOmgr/4XmolsEXzQJCrTlgpTqT/GCmwFB78y04sFOw57on+k3V6P36qECUVD86aV6FVBYmrRLvesmydP6jDaw==;";
-            var config = new ClusterConfiguration();
-            var siloAddress = new IPEndPoint(IPAddress.Loopback, 40000);
-            config.Globals.LivenessType = GlobalConfiguration.LivenessProviderType.MembershipTableGrain;
-            config.Globals.SeedNodes.Add(siloAddress);
-            config.Globals.ReminderServiceType = GlobalConfiguration.ReminderServiceProviderType.ReminderTableGrain;
+        static async Task<int> MainAsync()
+        {
+            try
+            {
+                var host = await StartSilo();
+                Console.WriteLine("Press Enter to terminate...");
+                Console.ReadLine();
 
-            config.Defaults.HostNameOrIPAddress = "localhost";
-            config.Defaults.Port = 40000;
-            config.Defaults.TraceFileName = null;
-            config.Defaults.ProxyGatewayEndpoint = new IPEndPoint(IPAddress.Any, 40001);
+                await host.StopAsync();
 
-            config.PrimaryNode = siloAddress;
+                return 0;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                return 1;
+            }
+        }
 
-            config.AddMemoryStorageProvider(
-                providerName: "PubSubStore"
-            );
+        private static async Task<ISiloHost> StartSilo()
+        {
+            // define the cluster configuration
+            var builder = new SiloHostBuilder()
+                .UseLocalhostClustering()
+                .Configure<ClusterOptions>(options =>
+                {
+                    options.ClusterId = "dev";
+                    options.ServiceId = "HelloWorldApp";
+                })
+                .AddSimpleMessageStreamProvider("Default")
+                .AddMemoryGrainStorageAsDefault()
+                .AddMemoryGrainStorage("PubSubStore")
+                .Configure<EndpointOptions>(options => options.AdvertisedIPAddress = IPAddress.Loopback)
+                .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(PlayerGrain).Assembly).WithReferences())
+                .ConfigureLogging(logging => logging.AddConsole());
 
-            config.AddSimpleMessageStreamProvider(
-                providerName: "Default",
-                fireAndForgetDelivery: true
-            );
-            return config;
+            var host = builder.Build();
+            await host.StartAsync();
+            return host;
         }
     }
 }
