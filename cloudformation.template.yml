@@ -1,0 +1,58 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample of Microsoft Orleans
+Parameters:
+  Version:
+    Type: String
+Resources:
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      RetentionInDays: 30
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties: {}
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    Properties:
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+        - FARGATE
+      ExecutionRoleArn: !ImportValue ECSDefaultCluster-ClusterInstanceRole
+      TaskRoleArn: !ImportValue ECSDefaultCluster-ClusterInstanceRole
+      ContainerDefinitions:
+        - Name: dragon-silo
+          Cpu: 256
+          Memory: 512
+          Essential: true
+          Image: !Sub "prowe/dragonattack:${Version}"
+          Command:
+            - dotnet
+            - run
+            - --no-build
+            - --project
+            - Silo
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: silo
+          PortMappings:
+            - ContainerPort: 40000
+            - ContainerPort: 40001
+  Service:
+    Type: AWS::ECS::Service
+    Properties:
+      Cluster: !Ref Cluster
+      DesiredCount: 1
+      TaskDefinition: !Ref TaskDefinition
+      LaunchType: FARGATE
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - subnet-1fd84335
+  # LoadBalancer:
+  #   Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  #   Properties:
+  #     Subnets:

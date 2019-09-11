@@ -1,12 +1,8 @@
-FROM microsoft/dotnet:1.1-sdk
+FROM mcr.microsoft.com/dotnet/core/sdk:2.2
 
-ADD . /app
+WORKDIR /app
+ADD ./Shared ./Silo ./*.sln ./
 
-RUN cd /app/Silo \
-    && dotnet restore \
-    && dotnet build
+RUN dotnet build
 
-RUN cd /app/Web \
-    && dotnet restore \
-    && dotnet build
-
+CMD dotnet run --no-build
